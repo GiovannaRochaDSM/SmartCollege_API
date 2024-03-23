@@ -1,9 +1,9 @@
 const express = require('express');
-const router = express.Router();
+const routerSubjects = express.Router();
 const Subjects = require('../models/subjects');
 
 // Rota para obter todas as matérias
-router.get('/', async (req, res) => {
+routerSubjects.get('/', async (req, res) => {
     try {
         const subjects = await Subjects.find();
         res.json(subjects);
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
 });
 
 // Rota para obter uma matéria por ID
-router.get('/:id', getSubjectsById, (req, res) => {
+routerSubjects.get('/:id', getSubjectsById, (req, res) => {
     try {
         res.json(res.subjects);
     } catch (err) {
@@ -22,7 +22,7 @@ router.get('/:id', getSubjectsById, (req, res) => {
 });
 
 // Rota para criar uma matéria
-router.post('/', async (req, res) => {
+routerSubjects.post('/', async (req, res) => {
     const { name } = req.body;
     try {
         if (await Subjects.findOne({ name }))
@@ -42,7 +42,7 @@ router.post('/', async (req, res) => {
 });
 
 // Rota para atualizar uma matéria por ID
-router.put('/:id', getSubjectsById, async (req, res) => {
+routerSubjects.put('/:id', getSubjectsById, async (req, res) => {
     try {
         if (req.body.name != null) {
             res.subjects.name = req.body.name;
@@ -65,7 +65,7 @@ router.put('/:id', getSubjectsById, async (req, res) => {
 });
 
 // Rota para excluir uma matéria por ID
-router.delete('/:id', getSubjectsById, async (req, res) => {
+routerSubjects.delete('/:id', getSubjectsById, async (req, res) => {
     try {
         await res.subjects.deleteOne();
         res.json({ message: 'Matéria excluída com sucesso!' });
@@ -88,4 +88,4 @@ async function getSubjectsById(req, res, next) {
     }
 }
 
-module.exports = router;
+module.exports = routerSubjects;
