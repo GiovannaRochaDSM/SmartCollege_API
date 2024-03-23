@@ -1,0 +1,17 @@
+{
+  "name": "smartcollege_api",
+  "version": "1.0.0",
+  "description": "API desenvolvida em Node.js e MongoDB para organização de estudos",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.1",
+    "mongoose": "^8.2.3"
+  }
+}
