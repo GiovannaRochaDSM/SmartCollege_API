@@ -15,7 +15,7 @@ const subjectsSchema = new mongoose.Schema({
     required: true
   },
   abscence: {
-    type: Number,
+    type: [Number],
     required: true
   }
 });
