@@ -12,6 +12,9 @@ app.use(cors());
 const subjectsRouter = require('./routes/subjectsRoutes');
 app.use('/subjects', subjectsRouter);
 
+const taskRouter = require('./routes/taskRoutes');
+app.use('/task', taskRouter);
+
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
