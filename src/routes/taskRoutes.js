@@ -5,7 +5,7 @@ const Task = require('../models/task');
 // Rota para obter todas as tarefas
 routerTask.get('/', async (req, res) => {
     try {
-        const tasks = await Task.find();
+        const tasks = await Task.find().populate('subject'); 
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });

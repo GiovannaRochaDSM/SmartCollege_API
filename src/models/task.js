@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const subjects = require('./subjects.js');
 
 const taskSchema = new mongoose.Schema({
   name: {
@@ -19,13 +20,13 @@ const taskSchema = new mongoose.Schema({
     default: 'Pendente'
   },
   subject: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subjects', 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: subjects, 
     required: true
   },
   category: {
     type: String,
-    enum: ['Atividade', 'Avaliação', 'Estudo'],
+    enum: ['Atividade', 'Avaliação', 'Estudo']
   }
 });
 
