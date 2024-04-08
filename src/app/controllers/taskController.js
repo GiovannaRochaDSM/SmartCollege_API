@@ -1,11 +1,15 @@
 const express = require('express');
-const routerTask = express.Router();
+const authMiddleware = require('../middlewares/auth');
+const router = express.Router();
+const Subjects = require('../models/subjects');
 const Task = require('../models/task');
 
+router.use(authMiddleware);
+
 // Rota para obter todas as tarefas
-routerTask.get('/', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const tasks = await Task.find().populate('subject'); 
+        const tasks = await Task.find().populate('subject');
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -13,7 +17,7 @@ routerTask.get('/', async (req, res) => {
 });
 
 // Rota para obter uma tarefa por ID
-routerTask.get('/:id', getTaskById, (req, res) => {
+router.get('/:id', getTaskById, (req, res) => {
     try {
         res.json(res.task);
     } catch (err) {
@@ -22,17 +26,23 @@ routerTask.get('/:id', getTaskById, (req, res) => {
 });
 
 // Rota para criar uma tarefa
-routerTask.post('/', async (req, res) => {
-    const task = new Task({
-        name: req.body.name,
-        description: req.body.description,
-        priority: req.body.priority,
-        deadline: req.body.deadline,
-        status: req.body.status,
-        subject: req.body.subject,
-        category: req.body.category
-    });
+router.post('/', async (req, res) => {
+    const { name } = req.body;
+
     try {
+        if (await Task.findOne({ name }))
+            return res.json({ message: 'Tarefa já cadastrada!' });
+
+        const task = new Task({
+            name: req.body.name,
+            description: req.body.description,
+            priority: req.body.priority,
+            deadline: req.body.deadline,
+            status: req.body.status,
+            subject: req.body.subject,
+            category: req.body.category
+        });
+
         const newTask = await task.save();
         res.status(201).json(newTask);
     } catch (err) {
@@ -41,7 +51,7 @@ routerTask.post('/', async (req, res) => {
 });
 
 // Rota para atualizar uma tarefa por ID
-routerTask.put('/:id', getTaskById, async (req, res) => {
+router.put('/:id', getTaskById, async (req, res) => {
     try {
         if (req.body.name != null) {
             res.task.name = req.body.name;
@@ -73,7 +83,7 @@ routerTask.put('/:id', getTaskById, async (req, res) => {
 });
 
 // Rota para excluir uma tarefa por ID
-routerTask.delete('/:id', getTaskById, async (req, res) => {
+router.delete('/:id', getTaskById, async (req, res) => {
     try {
         await res.task.deleteOne();
         res.json({ message: 'Tarefa excluída com sucesso!' });
@@ -96,4 +106,4 @@ async function getTaskById(req, res, next) {
     }
 }
 
-module.exports = routerTask;
+module.exports = app => app.use('/task', router);

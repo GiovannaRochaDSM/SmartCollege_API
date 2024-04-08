@@ -1,9 +1,12 @@
 const express = require('express');
-const routerSubjects = express.Router();
+const authMiddleware = require('../middlewares/auth');
+const router = express.Router();
 const Subjects = require('../models/subjects');
 
+router.use(authMiddleware);
+
 // Rota para obter todas as matérias
-routerSubjects.get('/', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const subjects = await Subjects.find();
         res.json(subjects);
@@ -13,7 +16,7 @@ routerSubjects.get('/', async (req, res) => {
 });
 
 // Rota para obter uma matéria por ID
-routerSubjects.get('/:id', getSubjectsById, (req, res) => {
+router.get('/:id', getSubjectsById, (req, res) => {
     try {
         res.json(res.subjects);
     } catch (err) {
@@ -22,11 +25,11 @@ routerSubjects.get('/:id', getSubjectsById, (req, res) => {
 });
 
 // Rota para criar uma matéria
-routerSubjects.post('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const { name } = req.body;
     try {
         if (await Subjects.findOne({ name }))
-          return res.json({ message: 'Matéria já cadastrada!' });
+            return res.json({ message: 'Matéria já cadastrada!' });
 
         const subjects = new Subjects({
             name: req.body.name,
@@ -34,6 +37,7 @@ routerSubjects.post('/', async (req, res) => {
             grades: req.body.grades,
             abscence: req.body.abscence
         });
+        
         const newSubjects = await subjects.save();
         res.status(201).json(newSubjects);
     } catch (err) {
@@ -42,7 +46,7 @@ routerSubjects.post('/', async (req, res) => {
 });
 
 // Rota para atualizar uma matéria por ID
-routerSubjects.put('/:id', getSubjectsById, async (req, res) => {
+router.put('/:id', getSubjectsById, async (req, res) => {
     try {
         if (req.body.name != null) {
             res.subjects.name = req.body.name;
@@ -65,7 +69,7 @@ routerSubjects.put('/:id', getSubjectsById, async (req, res) => {
 });
 
 // Rota para excluir uma matéria por ID
-routerSubjects.delete('/:id', getSubjectsById, async (req, res) => {
+router.delete('/:id', getSubjectsById, async (req, res) => {
     try {
         await res.subjects.deleteOne();
         res.json({ message: 'Matéria excluída com sucesso!' });
@@ -88,4 +92,4 @@ async function getSubjectsById(req, res, next) {
     }
 }
 
-module.exports = routerSubjects;
+module.exports = app => app.use('/subjects', router);

@@ -1,5 +1,6 @@
-const mongoose = require('mongoose');
+const mongoose = require('../../database');
 const subjects = require('./subjects.js');
+const bcrypt = require('bcryptjs');
 
 const taskSchema = new mongoose.Schema({
   name: {
