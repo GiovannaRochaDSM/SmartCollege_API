@@ -5,7 +5,11 @@ const crypto = require('crypto');
 const mailer = require('../../modules/mailer');
 const User = require('../models/user');
 const authConfig = require('../../config/auth.json');
+const nodemailer = require('nodemailer');
+const fs = require('fs');
+const mustache = require('mustache');
 const router = express.Router();
+require('dotenv').config();
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
@@ -60,6 +64,32 @@ router.post('/forgot_password', async (req, res) => {
             return res.status(400).send({ error: 'Usuário não encontrado' });
 
         const token = crypto.randomBytes(20).toString('hex');
+        const resetUrl = `https://smartcollege-api.onrender.com/auth/reset_password/${token}`;
+
+        const htmlTemplate = fs.readFileSync('src/resources/mail/auth/forgot_password.html', 'utf8');
+
+        const data = {
+            resetUrl: resetUrl
+        };
+
+        const renderedHtml = mustache.render(htmlTemplate, data);
+
+        const transporter = nodemailer.createTransport({
+            service: 'outlook',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Redefinição de Senha',
+            html: renderedHtml
+        };
+
+        const info = await transporter.sendMail(mailOptions);
 
         const now = new Date();
         now.setHours(now.getHours() + 1);
@@ -71,25 +101,17 @@ router.post('/forgot_password', async (req, res) => {
             }
         });
 
-        mailer.sendMail({
-            to: email,
-            from: 'smartcollege@bgg.com.br',
-            template: 'auth/forgot_password',
-            context: { token }
-        }, (err) => {
-            if (err)
-                return res.status(400).send({ error: 'Não é possível enviar e-mail com senha esquecida' });
-        
-            return res.send();
-        });
+        return res.send({ message: 'Um e-mail foi enviado para redefinição de senha' });
 
     } catch (err) {
         res.status(400).send({ error: 'Erro ao tentar recuperar a senha, tente novamente' });
     }
 });
 
-router.post('/reset_password', async (req, res) => {
-    const { email, token, password } = req.body;
+router.post('/reset_password/:token', async (req, res) => {
+    const token = req.params.token;
+
+    const { email, password } = req.body;
 
     try {
         const user = await User.findOne({ email })

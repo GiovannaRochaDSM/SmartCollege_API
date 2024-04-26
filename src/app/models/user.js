@@ -6,11 +6,22 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    studentRecord: {
+        type: String,
+        unique: true
+    },
+    surname: {
+        type: String,
+        unique: true
+    },
+    photo: {
+        type: String
+    },
     email: {
         type: String,
         unique: true,
         required: true,
-        lowercase: true,
+        lowercase: true
     },
     password: {
         type: String,
@@ -28,6 +39,9 @@ const UserSchema = new mongoose.Schema({
     createAt: {
         type: Date,
         default: Date.now
+    },
+    bond: {
+        type: Boolean
     }
 });
 
