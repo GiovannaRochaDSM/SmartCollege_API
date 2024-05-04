@@ -41,7 +41,12 @@ const UserSchema = new mongoose.Schema({
         default: Date.now
     },
     bond: {
-        type: Boolean
+        type: Boolean,
+        default: false
+    },
+    isCoord: {
+        type: Boolean,
+        default: false
     }
 });
 
