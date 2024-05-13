@@ -31,10 +31,10 @@ router.post('/', async (req, res) => {
     const { title, publication, dateTime, image } = req.body;
     try {
         const publication = new Publication({
-            title,
-            publication,
-            dateTime,
-            image
+            title: req.body.title,
+            publication: req.body.publication,
+            dateTime: req.body.dateTime,
+            image: req.body.image
         });
         
         const newPublication = await publication.save();
@@ -50,6 +50,9 @@ router.put('/:id', getPublicationById, async (req, res) => {
     try {
         if (req.body.title != null) {
             res.publication.title = req.body.title;
+        }
+        if (req.body.publication != null) {
+            res.publication.publication = req.body.publication;
         }
         if (req.body.dateTime != null) {
             res.publication.dateTime = req.body.dateTime;

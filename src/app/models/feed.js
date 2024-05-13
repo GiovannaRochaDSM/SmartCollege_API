@@ -1,5 +1,6 @@
 const mongoose = require('../../database');
-const user = require('./user');
+const user = require('./user.js');//vinculo com model user
+const bcrypt = require('bcryptjs');
 
 const publicationSchema = new mongoose.Schema({
     title: {
@@ -12,6 +13,12 @@ const publicationSchema = new mongoose.Schema({
     },
     image: {
         type: String,
+        required: true
+    },
+     // vinculo com a model User
+     user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: user,
         required: true
     }
 });
