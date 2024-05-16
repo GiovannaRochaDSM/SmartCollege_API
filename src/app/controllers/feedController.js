@@ -94,4 +94,4 @@ async function getPublicationById(req, res, next) {
     }
 }
 
-module.exports = app => app.use('/publications', router);
+module.exports = app => app.use('/publication', router);
