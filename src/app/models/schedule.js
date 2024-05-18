@@ -1,27 +1,20 @@
 const mongoose = require('../../database');
-const User = require('./user.js'); //vinculo com a user.js
+const subjects = require('./subjects.js');
 const bcrypt = require('bcryptjs');
 
 const scheduleSchema = new mongoose.Schema({
-    idSubject: {
+    dayWeek: {
         type: String,
-        required: true
-    },
-    dateTime: {
-        type: String,
+        enum: ['Segunda-feira', 'Terça-feira', 'Quarta-feira','Quinta-feira','Sexta-feira','Sábado', 'Domingo'],
         required: true
     },
     room: {
         type: String,
         required: true
     },
-    teacher: {
-        type: String,
-        required: true
-    },
-    user: {
+    subjects: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: user,
+        ref: subjects,
         required: true
     }
 });

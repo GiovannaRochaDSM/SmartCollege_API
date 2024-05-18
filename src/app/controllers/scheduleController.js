@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const Schedule = require('../models/schedule');
 const authMiddleware = require('../middlewares/auth');
+const Subjects = require('../models/subjects');
 
 router.use(authMiddleware);
 
 // Rota para obter todos os agendamentos/horários
-router.get('/schedules', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const schedules = await Schedule.find();
+        const schedules = await Schedule.find().populate('subjects');
         res.json(schedules);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -16,7 +17,7 @@ router.get('/schedules', async (req, res) => {
 });
 
 // Rota para obter um agendamento/horários por ID
-router.get('/schedules/:id', getScheduleById, (req, res) => {
+router.get('/:id', getScheduleById, (req, res) => {
     try {
         res.json(res.schedule);
     } catch (err) {
@@ -25,15 +26,13 @@ router.get('/schedules/:id', getScheduleById, (req, res) => {
 });
 
 // Rota para criar um novo agendamento/horários
-router.post('/schedules', async (req, res) => {
+router.post('/', async (req, res) => {
     const { idSubject, time, room, teacher, user } = req.body;
     try {
         const newSchedule = new Schedule({ 
-            idSubject: req.body.idSubject,
-            dateTime: req.body.dateTime,
+            dayWeek: req.body.dayWeek,
             room: req.body.room,
-            teacher: req.body.teacher,
-            user: req.body.user,
+            subjects: req.body.subjects,
         });
         
         const savedSchedule = await newSchedule.save();
@@ -44,22 +43,16 @@ router.post('/schedules', async (req, res) => {
 });
 
 // Rota para atualizar um agendamento/horários por ID
-router.put('/schedules/:id', getScheduleById, async (req, res) => {
+router.put('/:id', getScheduleById, async (req, res) => {
     try {
-        if (req.body.idSubject != null) {
-            res.schedule.idSubject = req.body.idSubject;
-        }
-        if (req.body.dateTime != null) {
-            res.schedule.dateTime = req.body.dateTime;
+        if (req.body.dayWeek != null) {
+            res.schedule.dayWeek = req.body.dayWeek;
         }
         if (req.body.room != null) {
             res.schedule.room = req.body.room;
         }
-        if (req.body.teacher!= null) {
-            res.schedule.teacher = req.body.teacher;
-        }
-        if (req.body.user != null) {
-            res.schedule.user = req.body.user;
+        if (req.body.subjects != null) {
+            res.schedule.subjects = req.body.subjects;
         }
 
         const updatedSchedule = await res.schedule.save();
@@ -70,7 +63,7 @@ router.put('/schedules/:id', getScheduleById, async (req, res) => {
 });
 
 // Rota para excluir um agendamento por ID
-router.delete('/schedules/:id', getScheduleById, async (req, res) => {
+router.delete('/:id', getScheduleById, async (req, res) => {
     try {
         await res.schedule.deleteOne();
         res.json({ message: 'Agendamento excluído com sucesso!' });

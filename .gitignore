@@ -1,4 +1,4 @@
 /node_modules
 .env
-src/config/auth.json
-.vscode/
+/src/config/auth.json
+/.vscode
