@@ -1,5 +1,6 @@
 const mongoose = require('../../database');
 const bcrypt = require('bcryptjs');
+const university = require('./university');
 
 const UserSchema = new mongoose.Schema({
     name: {
@@ -40,9 +41,13 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    bond: {
+    isBond: {
         type: Boolean,
         default: false
+    },
+    university: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: university,
     },
     isCoord: {
         type: Boolean,
@@ -51,6 +56,9 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) {
+        return next();
+    }
     const hash = await bcrypt.hash(this.password, 10);
     this.password = hash;
 

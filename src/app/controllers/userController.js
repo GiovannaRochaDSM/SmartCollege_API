@@ -1,5 +1,6 @@
 const authMiddleware = require('../middlewares/auth');
 const User = require('../models/user');
+const university = require('../models/university');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -10,7 +11,7 @@ router.use(authMiddleware);
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
-        const user = await User.findById(userId);
+        const user = await User.findById(userId).populate('university');
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
         const userData = {
@@ -18,7 +19,8 @@ router.get('/', authMiddleware, async (req, res) => {
             nickname: user.nickname,
             photo: user.photo,
             email: user.email,
-            bond: user.bond
+            isBond: user.isBond,
+            university: user.university
         };
 
         res.send(userData);
@@ -46,16 +48,15 @@ router.put('/', authMiddleware, async (req, res) => {
         if (req.body.email != null) {
             user.email = req.body.email;
         }
-        if (req.body.password != null) {
-            user.password = req.body.password;
-            const hash = await bcrypt.hash(user.password, 10);
-            user.password = hash;
+        if (req.body.isBond != null) {
+            if (req.body.isBond === true && !req.body.university) {
+                return res.status(400).send({ error: 'É obrigatório informar a faculdade vinculada.' });
+            }
+        user.isBond = req.body.isBond;
+        user.university = req.body.isBond ? req.body.university : undefined; // Seta university como undefined se isBond for false
         }
 
         const updatedUser = await user.save();
-
-        updatedUser.password = undefined;
-
         res.json(updatedUser);
     } catch (err) {
         console.error('Erro ao atualizar usuário:', err);
@@ -79,5 +80,5 @@ router.delete('/', authMiddleware, async (req, res) => {
     }
 });
 
- 
+
 module.exports = app => app.use('/me', router);
