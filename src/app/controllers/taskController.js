@@ -1,15 +1,14 @@
 const express = require('express');
 const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
-const Subjects = require('../models/subjects');
 const Task = require('../models/task');
 
 router.use(authMiddleware);
 
-// Rota para obter todas as tarefas
+// Rota para obter todas as tarefas do usuário atual
 router.get('/', async (req, res) => {
     try {
-        const tasks = await Task.find().populate('subject');
+        const tasks = await Task.find({ user: req.userId }).populate('subject');
         res.json(tasks);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -19,6 +18,9 @@ router.get('/', async (req, res) => {
 // Rota para obter uma tarefa por ID
 router.get('/:id', getTaskById, (req, res) => {
     try {
+        if (res.task.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado.' });
+        }
         res.json(res.task);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -27,11 +29,12 @@ router.get('/:id', getTaskById, (req, res) => {
 
 // Rota para criar uma tarefa
 router.post('/', async (req, res) => {
-    const { name } = req.body;
-
     try {
-        if (await Task.findOne({ name }))
-            return res.json({ message: 'Tarefa já cadastrada!' });
+        const { name } = req.body;
+
+        if (await Task.findOne({ name, user: req.userId })) {
+            return res.status(400).json({ message: 'Tarefa já cadastrada!' });
+        }
 
         const task = new Task({
             name: req.body.name,
@@ -40,7 +43,8 @@ router.post('/', async (req, res) => {
             deadline: req.body.deadline,
             status: req.body.status,
             subject: req.body.subject,
-            category: req.body.category
+            category: req.body.category,
+            user: req.userId
         });
 
         const newTask = await task.save();
@@ -53,6 +57,9 @@ router.post('/', async (req, res) => {
 // Rota para atualizar uma tarefa por ID
 router.put('/:id', getTaskById, async (req, res) => {
     try {
+        if (res.task.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado' });
+        }
         if (req.body.name != null) {
             res.task.name = req.body.name;
         }
@@ -85,6 +92,10 @@ router.put('/:id', getTaskById, async (req, res) => {
 // Rota para excluir uma tarefa por ID
 router.delete('/:id', getTaskById, async (req, res) => {
     try {
+        if (res.task.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado' });
+        }
+
         await res.task.deleteOne();
         res.json({ message: 'Tarefa excluída com sucesso!' });
     } catch (err) {

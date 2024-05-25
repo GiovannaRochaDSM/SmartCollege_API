@@ -1,10 +1,9 @@
 const mongoose = require('../../database');
-const bcrypt = require('bcryptjs');
+const user = require('./user.js');
  
 const subjectsSchema = new mongoose.Schema({
   name: {
     type: String,
-    unique: true,
     required: true
   },
   acronym: {
@@ -17,6 +16,11 @@ const subjectsSchema = new mongoose.Schema({
   },
   abscence: {
     type: Number,
+    required: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   }
 });

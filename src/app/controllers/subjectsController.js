@@ -5,19 +5,22 @@ const Subjects = require('../models/subjects');
 
 router.use(authMiddleware);
 
-// Rota para obter todas as matérias
+// Rota para obter todas as matérias do usuário atual
 router.get('/', async (req, res) => {
     try {
-        const subjects = await Subjects.find();
+        const subjects = await Subjects.find({ user: req.userId });
         res.json(subjects);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Rota para obter uma matéria por ID
+// Rota para obter uma matéria do usuário atual por ID
 router.get('/:id', getSubjectsById, (req, res) => {
     try {
+        if (res.subjects.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado' });
+        }
         res.json(res.subjects);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -28,16 +31,18 @@ router.get('/:id', getSubjectsById, (req, res) => {
 router.post('/', async (req, res) => {
     const { name } = req.body;
     try {
-        if (await Subjects.findOne({ name }))
-            return res.json({ message: 'Matéria já cadastrada!' });
+        if (await Subjects.findOne({ name, user: req.userId })) {
+            return res.status(400).json({ message: 'Matéria já cadastrada!' });
+        }
 
         const subjects = new Subjects({
             name: req.body.name,
             acronym: req.body.acronym,
             grades: req.body.grades,
-            abscence: req.body.abscence
+            abscence: req.body.abscence,
+            user: req.userId
         });
-        
+
         const newSubjects = await subjects.save();
         res.status(201).json(newSubjects);
     } catch (err) {
@@ -45,9 +50,12 @@ router.post('/', async (req, res) => {
     }
 });
 
-// Rota para atualizar uma matéria por ID
+// Rota para atualizar uma matéria do usuário atual por ID
 router.put('/:id', getSubjectsById, async (req, res) => {
     try {
+        if (res.subjects.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado' });
+        }
         if (req.body.name != null) {
             res.subjects.name = req.body.name;
         }
@@ -68,9 +76,12 @@ router.put('/:id', getSubjectsById, async (req, res) => {
     }
 });
 
-// Rota para excluir uma matéria por ID
+// Rota para excluir uma matéria do usuário atual por ID
 router.delete('/:id', getSubjectsById, async (req, res) => {
     try {
+        if (res.subjects.user.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Acesso negado' });
+        }
         await res.subjects.deleteOne();
         res.json({ message: 'Matéria excluída com sucesso!' });
     } catch (err) {

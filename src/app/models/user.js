@@ -47,7 +47,7 @@ const UserSchema = new mongoose.Schema({
     },
     university: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: university,
+        ref: 'University',
     },
     isCoord: {
         type: Boolean,

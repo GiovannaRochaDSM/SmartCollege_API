@@ -1,12 +1,11 @@
 const mongoose = require('../../database');
 const subjects = require('./subjects.js');
-const bcrypt = require('bcryptjs');
+const user = require('./user.js');
 
 const taskSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
-    unique: true,
+    required: true
   },
   description: String,
   priority: {
@@ -22,12 +21,17 @@ const taskSchema = new mongoose.Schema({
   },
   subject: {
     type: mongoose.Schema.Types.ObjectId, 
-    ref: subjects, 
+    ref: 'Subjects', 
     required: true
   },
   category: {
     type: String,
     enum: ['Atividade', 'Avaliação', 'Estudo']
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 });
 
