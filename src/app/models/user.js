@@ -37,14 +37,14 @@ const UserSchema = new mongoose.Schema({
         type: Date,
         select: false
     },
-    authCode: {
-        type: String,
-        select: false,
-    },
-    authCodeExpires: {
-        type: Date,
-        select: false,
-    },
+    // authCode: {
+    //     type: String,
+    //     select: false,
+    // },
+    // authCodeExpires: {
+    //     type: Date,
+    //     select: false,
+    // },
     createAt: {
         type: Date,
         default: Date.now

@@ -16,6 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
             return res.status(400).send({ error: 'Usuário não encontrado' });
         const userData = {
             name: user.name,
+            studentRecord: user.studentRecord,
             nickname: user.nickname,
             photo: user.photo,
             email: user.email,
@@ -38,6 +39,9 @@ router.put('/', authMiddleware, async (req, res) => {
             return res.status(400).send({ error: 'Usuário não encontrado' });
         if (req.body.name != null) {
             user.name = req.body.name;
+        }
+        if (req.body.studentRecord != null) {
+            user.studentRecord = req.body.studentRecord;
         }
         if (req.body.nickname != null) {
             user.nickname = req.body.nickname;
