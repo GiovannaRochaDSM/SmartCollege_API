@@ -233,10 +233,13 @@ const authConfig = require('../../config/auth.json');
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const mustache = require('mustache');
+const path = require('path'); // Adicionado
 const router = express.Router();
 require('dotenv').config();
 
-express.use(express.static(path.join(__dirname, 'public')));
+// Configurar o Express para servir arquivos estáticos do diretório 'public'
+const app = express();
+app.use(express.static(path.join(__dirname, '../../public'))); // Atualize o caminho conforme necessário
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
@@ -268,10 +271,10 @@ router.post('/authenticate', async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
 
     if (!user)
-        return res.status(400).send({ error: 'Usuário não encontrado'});
+        return res.status(400).send({ error: 'Usuário não encontrado' });
 
     if (!await bcrypt.compare(password, user.password))
-        return res.status(400).send({ error: 'Senha inválida'});
+        return res.status(400).send({ error: 'Senha inválida' });
 
     user.password = undefined;
 
@@ -337,7 +340,7 @@ router.post('/forgot_password', async (req, res) => {
 
 // Rota para servir o HTML de redefinição de senha
 router.get('/reset_password/:token', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'src/resources/mail/auth/reset_password.html'));
+    res.sendFile(path.join(__dirname, '../../public/src/resources/mail/auth/reset_password.html'));
 });
 
 // Rota para processar a redefinição de senha
@@ -370,4 +373,5 @@ router.post('/reset_password/:token', async (req, res) => {
         res.status(400).send({ error: 'Não é possível redefinir a senha, tente novamente' });
     }
 });
+
 module.exports = app => app.use('/auth', router);
