@@ -237,6 +237,60 @@ const path = require('path'); // Adicionado
 const router = express.Router();
 require('dotenv').config();
 
+router.post('/forgot_password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user)
+            return res.status(400).send({ error: 'Usuário não encontrado' });
+
+        const token = crypto.randomBytes(20).toString('hex');
+        const resetUrl = `https://smartcollege-api.onrender.com/auth/reset_password/${token}`;
+
+        const htmlTemplate = fs.readFileSync('src/resources/mail/auth/forgot_password.html', 'utf8');
+
+        const data = {
+            resetUrl: resetUrl
+        };
+
+        const renderedHtml = mustache.render(htmlTemplate, data);
+
+        const transporter = nodemailer.createTransport({
+            service: 'outlook',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: 'Redefinição de Senha',
+            html: renderedHtml
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+
+        const now = new Date();
+        now.setHours(now.getHours() + 1);
+
+        await User.findByIdAndUpdate(user.id, {
+            '$set': {
+                passwordResetToken: token,
+                passwordResetExpires: now
+            }
+        });
+
+        return res.send({ message: 'Um e-mail foi enviado para redefinição de senha' });
+
+    } catch (err) {
+        res.status(400).send({ error: 'Erro ao tentar recuperar a senha, tente novamente' });
+    }
+});
+
 // Configurar o Express para servir arquivos estáticos do diretório 'public'
 const app = express();
 app.use(express.static(path.join(__dirname, '../../public'))); // Atualize o caminho conforme necessário
