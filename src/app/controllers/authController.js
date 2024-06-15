@@ -236,6 +236,8 @@ const mustache = require('mustache');
 const router = express.Router();
 require('dotenv').config();
 
+express.use(express.static(path.join(__dirname, 'public')));
+
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
         expiresIn: 86400
@@ -291,7 +293,7 @@ router.post('/forgot_password', async (req, res) => {
         const token = crypto.randomBytes(20).toString('hex');
         const resetUrl = `https://smartcollege-api.onrender.com/auth/reset_password/${token}`;
 
-        const htmlTemplate = fs.readFileSync(path.join(__dirname, '../resources/mail/auth/forgot_password.html'), 'utf8');
+        const htmlTemplate = fs.readFileSync('src/resources/mail/auth/forgot_password.html', 'utf8');
 
         const data = {
             resetUrl: resetUrl
@@ -314,7 +316,7 @@ router.post('/forgot_password', async (req, res) => {
             html: renderedHtml
         };
 
-        await transporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
 
         const now = new Date();
         now.setHours(now.getHours() + 1);
@@ -333,16 +335,12 @@ router.post('/forgot_password', async (req, res) => {
     }
 });
 
-// Rota para servir a página de redefinição de senha
+// Rota para servir o HTML de redefinição de senha
 router.get('/reset_password/:token', (req, res) => {
-    const token = req.params.token;
-    const htmlTemplate = fs.readFileSync(path.join(__dirname, '../resources/view/reset_password.html'), 'utf8');
-    const renderedHtml = mustache.render(htmlTemplate, { token });
-
-    res.send(renderedHtml);
+    res.sendFile(path.join(__dirname, 'public', 'src/resources/mail/auth/reset_password.html'));
 });
 
-// Rota para atualizar a senha
+// Rota para processar a redefinição de senha
 router.post('/reset_password/:token', async (req, res) => {
     const token = req.params.token;
     const { email, password } = req.body;
