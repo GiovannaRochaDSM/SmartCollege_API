@@ -13,7 +13,7 @@ const universitySchema = new mongoose.Schema({
         type: String,
         required: true
     },
-     degreeCourse: {
+    degreeCourse: {
         type: [String],
         required: true
     }

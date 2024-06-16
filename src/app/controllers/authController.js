@@ -394,7 +394,7 @@ router.post('/forgot_password', async (req, res) => {
 
 // Rota para servir o HTML de redefinição de senha
 router.get('/reset_password/:token', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../public/src/resources/mail/auth/reset_password.html'));
+    res.sendFile(path.join(__dirname, 'src/resources/view/reset_password.html'));
 });
 
 // Rota para processar a redefinição de senha
