@@ -12,6 +12,7 @@ const router = express.Router();
 require('dotenv').config();
 
 let lastAuthenticatedEmail = '';
+let lastInformedEmail = '';
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
@@ -109,7 +110,42 @@ router.post('/validate_auth_code', async (req, res) => {
 
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
+        
+        const isMatch = await bcrypt.compare(authCode, user.authCode);
 
+        if (!isMatch)
+            return res.status(400).send({ error: 'Código de autenticação inválido' });
+
+        const now = new Date();
+
+        if (now > user.authCodeExpires)
+            return res.status(400).send({ error: 'Código de autenticação expirado.' });
+
+        await user.save();
+
+        user.password = undefined;
+        user.authCode = undefined;
+        user.authCodeExpires = undefined;
+
+        res.send({ 
+            user, 
+            token: generateToken({ id: user.id }) 
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send({ error: 'Erro interno no servidor' });
+    }
+});
+
+router.post('/validate_forgot_code', async (req, res) => {
+    const { authCode } = req.body;
+    try {
+        const user = await User.findOne({ email: lastInformedEmail }).select('+authCode authCodeExpires');
+
+        if (!user)
+            return res.status(400).send({ error: 'Usuário não encontrado' });
+        
         const isMatch = await bcrypt.compare(authCode, user.authCode);
 
         if (!isMatch)
@@ -146,13 +182,22 @@ router.post('/forgot_password', async (req, res) => {
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
 
-        const token = crypto.randomBytes(20).toString('hex');
-        const resetUrl = `https://smartcollege-api.onrender.com/auth/reset_password/${token}`;
+        const { rawAuthCode, hashedAuthCode } = await generateAuthCode();
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 10);
 
-        const htmlTemplate = fs.readFileSync('src/resources/mail/auth/forgot_password.html', 'utf8');
+        await User.findByIdAndUpdate(user.id, {
+            '$set': {
+                authCode: hashedAuthCode,
+                authCodeExpires: now
+            }
+        });
 
+        lastInformedEmail = email;
+
+        const htmlTemplate = fs.readFileSync('src/resources/mail/auth/send_auth_code.html', 'utf8');
         const data = {
-            resetUrl: resetUrl
+             authCode: rawAuthCode 
         };
 
         const renderedHtml = mustache.render(htmlTemplate, data);
@@ -168,57 +213,46 @@ router.post('/forgot_password', async (req, res) => {
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
-            subject: 'Redefinição de Senha',
+            subject: 'Esqueci a Senha - Código de Autenticação',
             html: renderedHtml
         };
 
-        const info = await transporter.sendMail(mailOptions);
+        await transporter.sendMail(mailOptions);
 
-        const now = new Date();
-        now.setHours(now.getHours() + 1);
-
-        await User.findByIdAndUpdate(user.id, {
-            '$set': {
-                passwordResetToken: token,
-                passwordResetExpires: now
-            }
-        });
-
-        return res.send({ message: 'Um e-mail foi enviado para redefinição de senha' });
+        return res.send({ message: 'Um e-mail foi enviado com o código de autenticação para redefinição de senha.' });
 
     } catch (err) {
-        res.status(400).send({ error: 'Erro ao tentar recuperar a senha, tente novamente' });
+        res.status(400).send({ error: 'Erro ao tentar enviar o código de autenticação, tente novamente' });
     }
 });
 
-router.post('/reset_password/:token', async (req, res) => {
-    const token = req.params.token;
 
+router.post('/reset_password', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await User.findOne({ email })
-            .select('+passwordResetToken passwordResetExpires');
-        
-        if (!user)
+        const user = await User.findOne({ email });
+
+        if (!user) {
             return res.status(400).send({ error: 'Usuário não encontrado' });
-        
-        if (token !== user.passwordResetToken)
-            return res.status(400).send({ error: 'Token inválido' });
+        }
 
-        const now = new Date();
-
-        if (now > user.passwordResetExpires)
-            return res.status(400).send({ error: 'Token expirado, gere um novo token' });
+        if (!password) {
+            return res.status(400).send({ error: 'A nova senha não pode estar vazia' });
+        }
 
         user.password = password;
+        user.authCode = undefined;
+        user.authCodeExpires = undefined;
 
         await user.save();
 
-        res.send();
+        return res.send({ message: 'Senha redefinida com sucesso' });
     } catch (err) {
-        res.status(400).send({ error: 'Não é possível redefinir a senha, tente novamente' });
+        console.error(err);
+        return res.status(500).send({ error: 'Erro ao tentar redefinir a senha, tente novamente' });
     }
 });
+
 
 module.exports = app => app.use('/auth', router);
