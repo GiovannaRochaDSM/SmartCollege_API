@@ -1,31 +1,23 @@
-const authMiddleware = require('../middlewares/auth');
-const User = require('../models/user');
-const university = require('../models/university');
 const express = require('express');
+const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
+const User = require('../models/user');
 
 router.use(authMiddleware);
 
 // Obter dados do usuário atual
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
         const userId = req.userId;
         const user = await User.findById(userId).populate('university');
-        if (!user)
-            return res.status(400).send({ error: 'Usuário não encontrado' });
-        const userData = {
-            name: user.name,
-            nickname: user.nickname,
-            photo: user.photo,
-            email: user.email,
-            isBond: user.isBond,
-            university: user.university
-        };
 
-        res.send(userData);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        res.json(user);
     } catch (err) {
-        res.status(400).send({ error: 'Erro ao buscar dados do usuário' });
+        console.error('Erro ao buscar dados do usuário:', err);
+        res.status(500).json({ error: 'Erro ao buscar dados do usuário' });
     }
 });
 
@@ -36,6 +28,7 @@ router.put('/', authMiddleware, async (req, res) => {
         const user = await User.findById(userId);
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
+
         if (req.body.name != null) {
             user.name = req.body.name;
         }
@@ -52,8 +45,9 @@ router.put('/', authMiddleware, async (req, res) => {
             if (req.body.isBond === true && !req.body.university) {
                 return res.status(400).send({ error: 'É obrigatório informar a faculdade vinculada.' });
             }
-        user.isBond = req.body.isBond;
-        user.university = req.body.isBond ? req.body.university : undefined; // Seta university como undefined se isBond for false
+            user.isBond = req.body.isBond;
+            user.university = req.body.university;
+            user.university = req.body.isBond ? req.body.university : undefined;
         }
 
         const updatedUser = await user.save();
