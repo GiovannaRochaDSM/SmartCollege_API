@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Autenticação - SmartCollege</title>
+<style>
+@font-face {
+    font-family: 'Codec-Cold-Regular';
+    src: url('src/app/assets/fonts/Codec-Cold-Regular-trial.ttf') format('truetype');
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Codec-Cold-Regular', sans-serif;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div style="text-align: center;">
+        <img src="https://i.ibb.co/Q66nQJz/header-sc.png" alt="header" style="max-width: 100%; height: auto;">
+    </div>
+    <p style="text-align: justify; margin-bottom: 10px;">Recebemos uma solicitação de autenticação. Utilize o código abaixo para prosseguir:</p>
+    <p style="text-align: justify; margin-bottom: 20px; font-size: 22px; text-align: center;"><strong>{{authCode}}</strong></p>
+    <p style="text-align: justify; margin-bottom: 10px;">Se esta solicitação não partiu de você, orientamos a atualizar sua senha de cadastro para garantir a segurança de sua conta.</p>
+    <p style="text-align: justify; margin-bottom: 20px;">Obrigada!</p>
+    <div style="text-align: center;">
+        <a href="https://ibb.co/Nyy7Jc5">
+            <img src="https://i.ibb.co/FhzcKXM/footer-sc.png" alt="footer" class="footer-img" style="max-width: 100%; height: auto;">
+        </a>
+    </div>
+</div>
+</body>
+</html>
