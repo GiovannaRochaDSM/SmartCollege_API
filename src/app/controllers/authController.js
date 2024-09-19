@@ -11,13 +11,15 @@ const mustache = require('mustache');
 const router = express.Router();
 require('dotenv').config();
 
-let lastAuthenticatedEmail = '';
-let lastInformedEmail = '';
+const authState = {
+    lastAuthenticatedEmail: null,
+    lastInformedEmail: null
+};
 
 function generateToken(params = {}) {
     return jwt.sign(params, authConfig.secret, {
-        expiresIn: 86400
-    });
+         expiresIn: 86400
+        });
 }
 
 function generateRawAuthCode() {
@@ -26,23 +28,24 @@ function generateRawAuthCode() {
 
 async function generateAuthCode() {
     const rawAuthCode = generateRawAuthCode();
-    const hashedAuthCode = await bcrypt.hash(rawAuthCode, 10); 
+    const hashedAuthCode = await bcrypt.hash(rawAuthCode, 10);
     return { rawAuthCode, hashedAuthCode };
 }
 
 router.post('/register', async (req, res) => {
     const { email } = req.body;
     try {
-        if (await User.findOne({ email }))
+        if (await User.findOne({ email })) {
             return res.status(400).send({ error: 'Usuário já cadastrado' });
+        }
 
         const user = await User.create(req.body);
 
         user.password = undefined;
 
-        return res.send({ 
-            user, 
-            token: generateToken({ id: user.id }) 
+        return res.send({
+            user,
+            token: generateToken({ id: user.id })
         });
     } catch (err) {
         return res.status(400).send({ error: 'Ocorreu um erro ao cadastrar' });
@@ -52,17 +55,23 @@ router.post('/register', async (req, res) => {
 router.post('/authenticate', async (req, res) => {
     const { email, password } = req.body;
     try {
-        const user = await User.findOne({ email }).select('+password');
+        const user = await User.findOne({ email }).select('+password authCode authCodeExpires');
 
-        if (!user)
+        if (!user) {
             return res.status(400).send({ error: 'Usuário não encontrado'});
+        }
 
-        if (!await bcrypt.compare(password, user.password))
+        if (!await bcrypt.compare(password, user.password)) {
             return res.status(400).send({ error: 'Senha inválida'});
+        }
+
+        const now = new Date();
+        if (user.authCode && user.authCodeExpires > now) {
+            authState.lastAuthenticatedEmail = email;
+            return res.status(200).send({ message: 'Código de autenticação já enviado e ainda é válido.' });
+        }
 
         const { rawAuthCode, hashedAuthCode } = await generateAuthCode();
-        
-        const now = new Date();
         now.setMinutes(now.getMinutes() + 10);
 
         await User.findByIdAndUpdate(user.id, {
@@ -72,7 +81,7 @@ router.post('/authenticate', async (req, res) => {
             }
         });
 
-        lastAuthenticatedEmail = email;
+        authState.lastAuthenticatedEmail = email;
 
         const htmlTemplate = fs.readFileSync('src/resources/mail/auth/send_auth_code.html', 'utf8');
         const data = { authCode: rawAuthCode };
@@ -105,21 +114,25 @@ router.post('/authenticate', async (req, res) => {
 
 router.post('/validate_auth_code', async (req, res) => {
     const { authCode } = req.body;
+    const email = authState.lastAuthenticatedEmail;
     try {
-        const user = await User.findOne({ email: lastAuthenticatedEmail }).select('+authCode authCodeExpires');
+        const user = await User.findOne({ email }).select('+authCode authCodeExpires');
 
-        if (!user)
+        if (!user) {
             return res.status(400).send({ error: 'Usuário não encontrado' });
-        
+        }
+
         const isMatch = await bcrypt.compare(authCode, user.authCode);
 
-        if (!isMatch)
+        if (!isMatch) {
             return res.status(400).send({ error: 'Código de autenticação inválido' });
+        }
 
-        const now = new Date();
+        const now = new Date();   
 
-        if (now > user.authCodeExpires)
+        if (now > user.authCodeExpires) {
             return res.status(400).send({ error: 'Código de autenticação expirado.' });
+        }
 
         await user.save();
 
@@ -127,9 +140,9 @@ router.post('/validate_auth_code', async (req, res) => {
         user.authCode = undefined;
         user.authCodeExpires = undefined;
 
-        res.send({ 
-            user, 
-            token: generateToken({ id: user.id }) 
+        res.send({
+            user,
+            token: generateToken({ id: user.id })
         });
 
     } catch (err) {
@@ -175,12 +188,12 @@ router.post('/validate_forgot_code', async (req, res) => {
 
 router.post('/forgot_password', async (req, res) => {
     const { email } = req.body;
-
     try {
         const user = await User.findOne({ email });
 
-        if (!user)
+        if (!user) {
             return res.status(400).send({ error: 'Usuário não encontrado' });
+        }
 
         const { rawAuthCode, hashedAuthCode } = await generateAuthCode();
         const now = new Date();
@@ -193,11 +206,11 @@ router.post('/forgot_password', async (req, res) => {
             }
         });
 
-        lastInformedEmail = email;
+        authState.lastInformedEmail = email;
 
         const htmlTemplate = fs.readFileSync('src/resources/mail/auth/send_auth_code.html', 'utf8');
         const data = {
-             authCode: rawAuthCode 
+            authCode: rawAuthCode
         };
 
         const renderedHtml = mustache.render(htmlTemplate, data);
@@ -247,7 +260,7 @@ router.post('/reset_password', async (req, res) => {
 
         await user.save();
 
-        return res.send({ message: 'Senha redefinida com sucesso' });
+       return res.send({ message: 'Senha redefinida com sucesso' });
     } catch (err) {
         console.error(err);
         return res.status(500).send({ error: 'Erro ao tentar redefinir a senha, tente novamente' });
