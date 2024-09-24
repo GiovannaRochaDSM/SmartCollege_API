@@ -2,6 +2,7 @@ const express = require('express');
 const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
 const Subjects = require('../models/subjects');
+const Task = require('../models/task');
 
 router.use(authMiddleware);
 
@@ -82,8 +83,9 @@ router.delete('/:id', getSubjectsById, async (req, res) => {
         if (res.subjects.user.toString() !== req.userId) {
             return res.status(403).json({ message: 'Acesso negado' });
         }
+        await Task.deleteMany({ subject: res.subjects._id });
         await res.subjects.deleteOne();
-        res.json({ message: 'Matéria excluída com sucesso!' });
+        res.json({ message: 'Matéria e suas tarefas excluídas com sucesso!' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
