@@ -34,6 +34,7 @@ async function generateAuthCode() {
 
 router.post('/register', async (req, res) => {
     const { email } = req.body;
+    
     try {
         if (await User.findOne({ email })) {
             return res.status(400).send({ error: 'Usuário já cadastrado' });
@@ -54,6 +55,7 @@ router.post('/register', async (req, res) => {
 
 router.post('/authenticate', async (req, res) => {
     const { email, password } = req.body;
+
     try {
         const user = await User.findOne({ email }).select('+password authCode authCodeExpires');
 
@@ -88,7 +90,9 @@ router.post('/authenticate', async (req, res) => {
         const renderedHtml = mustache.render(htmlTemplate, data);
 
         const transporter = nodemailer.createTransport({
-            service: 'outlook',
+            host: 'mail.gmx.com',
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -115,6 +119,7 @@ router.post('/authenticate', async (req, res) => {
 router.post('/validate_auth_code', async (req, res) => {
     const { authCode } = req.body;
     const email = authState.lastAuthenticatedEmail;
+
     try {
         const user = await User.findOne({ email }).select('+authCode authCodeExpires');
 
@@ -153,8 +158,10 @@ router.post('/validate_auth_code', async (req, res) => {
 
 router.post('/validate_forgot_code', async (req, res) => {
     const { authCode } = req.body;
+    const email = authState.lastInformedEmail;
+
     try {
-        const user = await User.findOne({ email: lastInformedEmail }).select('+authCode authCodeExpires');
+        const user = await User.findOne({ email }).select('+authCode authCodeExpires');
 
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
@@ -188,15 +195,21 @@ router.post('/validate_forgot_code', async (req, res) => {
 
 router.post('/forgot_password', async (req, res) => {
     const { email } = req.body;
+
     try {
         const user = await User.findOne({ email });
 
         if (!user) {
-            return res.status(400).send({ error: 'Usuário não encontrado' });
+            return res.status(400).send({ error: 'Usuário não encontrado'});
+        }
+
+        const now = new Date();
+        if (user.authCode && user.authCodeExpires > now) {
+            authState.lastInformedEmail = email;
+            return res.status(200).send({ message: 'Código de autenticação já enviado e ainda é válido.' });
         }
 
         const { rawAuthCode, hashedAuthCode } = await generateAuthCode();
-        const now = new Date();
         now.setMinutes(now.getMinutes() + 10);
 
         await User.findByIdAndUpdate(user.id, {
@@ -209,14 +222,13 @@ router.post('/forgot_password', async (req, res) => {
         authState.lastInformedEmail = email;
 
         const htmlTemplate = fs.readFileSync('src/resources/mail/auth/send_auth_code.html', 'utf8');
-        const data = {
-            authCode: rawAuthCode
-        };
-
+        const data = { authCode: rawAuthCode };
         const renderedHtml = mustache.render(htmlTemplate, data);
 
         const transporter = nodemailer.createTransport({
-            service: 'outlook',
+            host: 'mail.gmx.com',
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS
@@ -238,7 +250,6 @@ router.post('/forgot_password', async (req, res) => {
         res.status(400).send({ error: 'Erro ao tentar enviar o código de autenticação, tente novamente' });
     }
 });
-
 
 router.post('/reset_password', async (req, res) => {
     const { email, password } = req.body;
@@ -266,6 +277,5 @@ router.post('/reset_password', async (req, res) => {
         return res.status(500).send({ error: 'Erro ao tentar redefinir a senha, tente novamente' });
     }
 });
-
 
 module.exports = app => app.use('/auth', router);
