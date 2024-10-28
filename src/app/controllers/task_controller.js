@@ -2,6 +2,7 @@ const express = require('express');
 const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
 const Task = require('../models/task');
+const Notification = require('../models/notification');
 
 router.use(authMiddleware);
 
@@ -48,6 +49,32 @@ router.post('/', async (req, res) => {
         });
 
         const newTask = await task.save();
+
+        if (task.status !== 'Concluída') {
+            const notificationPromises = [];
+
+            // Notificação para o dia do vencimento
+            notificationPromises.push(new Notification({
+                title: 'Tarefa Vencendo Hoje',
+                body: `A ${newTask.category} "${newTask.name}" vence hoje.`,
+                taskId: newTask._id,
+                userId: req.userId,
+                scheduledTime: newTask.deadline,
+            }).save());
+
+            // Notificação para 5 dias antes do vencimento
+            const fiveDaysBefore = new Date(newTask.deadline);
+            fiveDaysBefore.setDate(fiveDaysBefore.getDate() + 3);
+            notificationPromises.push(new Notification({
+                title: 'Tarefa Vencendo em 3 Dias',
+                body: `Você tem uma  ${newTask.category} "${newTask.name}" vencendo em 5 dias.`,
+                taskId: newTask._id,
+                userId: req.userId,
+                scheduledTime: fiveDaysBefore,
+            }).save());
+
+            await Promise.all(notificationPromises);
+        }
         res.status(201).json(newTask);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -83,6 +110,35 @@ router.put('/:id', getTaskById, async (req, res) => {
         }
 
         const updatedTask = await res.task.save();
+
+        await Notification.deleteMany({ taskId: res.task._id });
+
+        if (updatedTask.status !== 'Concluída') {
+            const notificationPromises = [];
+
+            // Notificação para o dia do vencimento
+            notificationPromises.push(new Notification({
+                title: 'Tarefa Vencendo Hoje',
+                body: `A ${updatedTask.category} "${updatedTask.name}" vence hoje.`,
+                taskId: updatedTask._id,
+                userId: req.userId,
+                scheduledTime: updatedTask.deadline,
+            }).save());
+
+            // Notificação para 3 dias antes do vencimento
+            const threeDaysBefore = new Date(updatedTask.deadline);
+            threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+            notificationPromises.push(new Notification({
+                title: 'Tarefa Vencendo em 3 Dias',
+                body: `Você tem uma ${updatedTask.category} "${updatedTask.name}" vencendo em 3 dias.`,
+                taskId: updatedTask._id,
+                userId: req.userId,
+                scheduledTime: threeDaysBefore,
+            }).save());
+
+            await Promise.all(notificationPromises);
+        }
+
         res.json(updatedTask);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -95,9 +151,9 @@ router.delete('/:id', getTaskById, async (req, res) => {
         if (res.task.user.toString() !== req.userId) {
             return res.status(403).json({ message: 'Acesso negado' });
         }
-
+        await Notification.deleteMany({ taskId: res.task._id });
         await res.task.deleteOne();
-        res.json({ message: 'Tarefa excluída com sucesso!' });
+        res.json({ message: 'Tarefa e notificações excluídas com sucesso!' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
