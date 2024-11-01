@@ -1,104 +1,148 @@
 const express = require('express');
-const router = express.Router();
+const User = require('../models/user');
+const Publication = require('../models/feed');
 const authMiddleware = require('../middlewares/auth');
-const Publication = require('../models/feed'); //vinculo com a feed.js
+const { checkBond, checkCoord } = require('../middlewares/check_permissions');
+const router = express.Router();
 
 router.use(authMiddleware);
 
-// Rota para obter todas as publicações do usuário atual
-router.get('/publication', async (req, res) => {
+router.get('/publication', checkBond, async (req, res) => {
     try {
-        const publications = await Publication.find({ user: req.userId });
+        const user = await User.findById(req.userId);
+        if (!user.university) {
+            return res.status(403).json({ message: 'Acesso negado. Você não está vinculado a uma universidade.' });
+        }
+
+        const publications = await Publication.find({ university: user.university })
+            .populate('user')
+            .populate('university')
+            .sort({ dateTime: -1 });
+
         res.json(publications);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Rota para obter uma publicação do usuário atual por ID 
-router.get('/publication/:id', getPublicationById, (req, res) => {
+router.get('/publication/:id', async (req, res) => {
     try {
-        if (res.publication.user.toString() !== req.userId) {
-            return res.status(403).json({ message: 'Acesso negado' });
+        const publication = await Publication.findById(req.params.id)
+            .populate('user')
+            .populate('university');
+
+        if (!publication) {
+            return res.status(404).json({ message: 'Publicação não encontrada.' });
         }
-        res.json(res.publication);
+
+        const user = await User.findById(req.userId);
+
+    const publicationUniversityId = publication.university._id.toString();
+    const userUniversityId = user.university.toString();
+
+
+    if (publicationUniversityId !== userUniversityId) {
+        return res.status(403).json({ message: 'Acesso negado. Esta publicação não pertence à sua universidade.' });
+    }
+
+        res.json(publication);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
 
-// Rota para criar uma publicação
-router.post('/publication', async (req, res) => {
-    const { title, publication, dateTime, image } = req.body;
+router.post('/publication', checkBond, checkCoord, async (req, res) => {
     try {
-        const publication = new Publication({
+        const user = await User.findById(req.userId);
+
+        const newPublication = new Publication({
             title: req.body.title,
             publication: req.body.publication,
             dateTime: req.body.dateTime,
             image: req.body.image,
-            user: req.userId
+            user: req.userId,
+            university: user.university
         });
 
-        const newPublication = await publication.save();
-        res.status(201).json(newPublication);
+        const savedPublication = await newPublication.save();
+        res.status(201).json(savedPublication);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
 
-// Rota para atualizar uma publicação do usuário atual por ID
-router.put('/publication/:id', getPublicationById, async (req, res) => {
+router.post('/publication/:id/like', authMiddleware, async (req, res) => {
     try {
-        if (res.publication.user.toString() !== req.userId) {
-            return res.status(403).json({ message: 'Acesso negado' });
+        const publication = await Publication.findById(req.params.id);
+
+        if (!publication) {
+            return res.status(404).json({ message: 'Publicação não encontrada.' });
         }
-        if (req.body.title != null) {
+
+        const user = await User.findById(req.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+
+        const nickname = user.nickname;
+
+        if (publication.likedBy.includes(nickname)) {
+            publication.likes -= 1;
+            publication.likedBy = publication.likedBy.filter(n => n !== nickname);
+        } else {
+            publication.likes += 1;
+            publication.likedBy.push(nickname);
+        }
+
+        await publication.save();
+
+        res.json({ likes: publication.likes, likedBy: publication.likedBy });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    }
+});
+
+router.put('/publication/:id', checkBond, checkCoord, getPublicationById, async (req, res) => {
+    try {
+        if (req.body.title !== null) {
             res.publication.title = req.body.title;
         }
-        if (req.body.publication != null) {
+        if (req.body.publication !== null) {
             res.publication.publication = req.body.publication;
         }
-        if (req.body.dateTime != null) {
-            res.publication.dateTime = req.body.dateTime;
-        }
-        if (req.body.image != null) {
+        if (req.body.image !== null) {
             res.publication.image = req.body.image;
-        }
-        if (req.body.user != null) {
-            res.publication.user = req.body.user;
         }
 
         const updatedPublication = await res.publication.save();
         res.json(updatedPublication);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ message: 'Falha ao atualizar publicação.' });
     }
 });
 
-// Rota para excluir uma publicação do usuário atual por ID
-router.delete('/publication/:id', getPublicationById, async (req, res) => {
+router.delete('/publication/:id', checkBond, checkCoord, getPublicationById, async (req, res) => {
     try {
-        if (res.publication.user.toString() !== req.userId) {
-            return res.status(403).json({ message: 'Acesso negado' });
-        }
         await res.publication.deleteOne();
         res.json({ message: 'Publicação excluída com sucesso!' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: 'Falha ao excluir publicação.' });
     }
 });
 
-// Middleware para obter uma publicação por ID
 async function getPublicationById(req, res, next) {
     try {
         const publication = await Publication.findById(req.params.id);
+        
         if (publication == null) {
-            return res.status(404).json({ message: 'Publicação não encontrada!' });
+            return res.status(404).json({ message: 'Publicação não encontrada.' });
         }
+
         res.publication = publication;
         next();
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        return res.status(500).json({ message: 'Erro ao buscar publicação.' });
     }
 }
 
