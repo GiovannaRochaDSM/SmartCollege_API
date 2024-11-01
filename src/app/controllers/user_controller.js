@@ -19,8 +19,9 @@ router.get('/', authMiddleware, async (req, res) => {
             nickname: user.nickname,
             photo: user.photo,
             email: user.email,
-            isBond: user.isBond,
-            university: user.university
+            bond: user.bond,
+            university: user.bond ? user.university : null,
+            isCoord: user.isCoord
         };
 
         res.send(userData);
@@ -36,6 +37,7 @@ router.put('/', authMiddleware, async (req, res) => {
         const user = await User.findById(userId);
         if (!user)
             return res.status(400).send({ error: 'Usuário não encontrado' });
+
         if (req.body.name != null) {
             user.name = req.body.name;
         }
@@ -48,12 +50,15 @@ router.put('/', authMiddleware, async (req, res) => {
         if (req.body.email != null) {
             user.email = req.body.email;
         }
-        if (req.body.isBond != null) {
-            if (req.body.isBond === true && !req.body.university) {
-                return res.status(400).send({ error: 'É obrigatório informar a faculdade vinculada.' });
+        if (req.body.bond != null) {
+            if (req.body.bond === true && !req.body.university) {
+                return res.status(400).send({ error: 'É obrigatório informar a universidade ao vincular.' });
             }
-        user.isBond = req.body.isBond;
-        user.university = req.body.isBond ? req.body.university : undefined; // Seta university como undefined se isBond for false
+            user.bond = req.body.bond;
+            user.university = req.body.bond ? req.body.university : null;
+        }
+        if (req.body.isCoord != null) {
+            user.isCoord = req.body.isCoord;
         }
 
         const updatedUser = await user.save();
@@ -79,6 +84,5 @@ router.delete('/', authMiddleware, async (req, res) => {
         res.status(400).send({ error: 'Erro ao excluir conta do usuário' });
     }
 });
-
 
 module.exports = app => app.use('/me', router);
