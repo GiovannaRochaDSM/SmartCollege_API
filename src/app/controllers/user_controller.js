@@ -50,7 +50,7 @@ router.put('/', authMiddleware, async (req, res) => {
         if (req.body.email != null) {
             user.email = req.body.email;
         }
-        if (req.body.bond != null) {
+        if (req.body.bond != false) {
             if (req.body.bond === true && !req.body.university) {
                 return res.status(400).send({ error: 'É obrigatório informar a universidade ao vincular.' });
             }
