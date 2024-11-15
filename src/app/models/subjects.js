@@ -18,6 +18,10 @@ const subjectsSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  notes: {
+    type: String,
+    required: false
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -3,6 +3,7 @@ const authMiddleware = require('../middlewares/auth');
 const router = express.Router();
 const Subjects = require('../models/subjects');
 const Task = require('../models/task');
+const Schedule = require('../models/schedule');
 
 router.use(authMiddleware);
 
@@ -41,6 +42,7 @@ router.post('/', async (req, res) => {
             acronym: req.body.acronym,
             grades: req.body.grades,
             abscence: req.body.abscence,
+            notes: req.body.notes,
             user: req.userId
         });
 
@@ -69,6 +71,9 @@ router.put('/:id', getSubjectsById, async (req, res) => {
         if (req.body.abscence != null) {
             res.subjects.abscence = req.body.abscence;
         }
+        if (req.body.notes != null) {
+            res.subjects.notes = req.body.notes;
+        }
 
         const updatedSubjects = await res.subjects.save();
         res.json(updatedSubjects);
@@ -84,6 +89,7 @@ router.delete('/:id', getSubjectsById, async (req, res) => {
             return res.status(403).json({ message: 'Acesso negado' });
         }
         await Task.deleteMany({ subject: res.subjects._id });
+        await Schedule.deleteMany({ subject: res.subjects._id });
         await res.subjects.deleteOne();
         res.json({ message: 'Matéria e suas tarefas excluídas com sucesso!' });
     } catch (err) {
