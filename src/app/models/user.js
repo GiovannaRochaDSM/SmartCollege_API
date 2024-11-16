@@ -1,11 +1,10 @@
-const mongoose = require('../../database');
 const bcrypt = require('bcryptjs');
+const mongoose = require('../../database');
 const university = require('./university');
 
 const UserSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
     },
     studentRecord: {
         type: String,
@@ -13,7 +12,8 @@ const UserSchema = new mongoose.Schema({
     },
     nickname: {
         type: String,
-        unique: true
+        unique: true,
+        required: true
     },
     photo: {
         type: String
@@ -29,40 +29,28 @@ const UserSchema = new mongoose.Schema({
         required: true,
         select: false
     },
-    passwordResetToken: {
-        type: String, 
-        select: false
+    authCode: {
+        type: String,
+        select: false,
     },
-    passwordResetExpires: {
+    authCodeExpires: {
         type: Date,
-        select: false
+        select: false,
     },
-    // authCode: {
-    //     type: String,
-    //     select: false,
-    // },
-    // authCodeExpires: {
-    //     type: Date,
-    //     select: false,
-    // },
     createAt: {
         type: Date,
         default: Date.now
     },
-    isBond: {
+    bond: {
         type: Boolean,
         default: false
     },
     university: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'University',
-        required: function() {
-            return this.isBond;
-        }
     },
     isCoord: {
-        type: Boolean,
-        default: false
+        type: Boolean
     }
 });
 
