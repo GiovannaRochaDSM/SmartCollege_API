@@ -1,14 +1,9 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const fs = require('fs');
-const mustache = require('mustache');
-const nodemailer = require('nodemailer');
 const authMiddleware = require('../middlewares/auth');
 const User = require('../models/user');
 const university = require('../models/university');
+const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose'); // Importe o Mongoose
+const bcrypt = require('bcryptjs');
 
 router.use(authMiddleware);
 
@@ -17,11 +12,10 @@ router.get('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const user = await User.findById(userId).populate('university');
-        if (!user) return res.status(400).send({ error: 'Usuário não encontrado' });
-
+        if (!user)
+            return res.status(400).send({ error: 'Usuário não encontrado' });
         const userData = {
             name: user.name,
-            studentRecord: user.studentRecord,
             nickname: user.nickname,
             photo: user.photo,
             email: user.email,
@@ -80,7 +74,9 @@ router.delete('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const user = await User.findById(userId);
-        if (!user) return res.status(400).send({ error: 'Usuário não encontrado' });
+
+        if (!user)
+            return res.status(400).send({ error: 'Usuário não encontrado' });
 
         await User.findByIdAndRemove(userId);
         res.send({ message: 'Conta excluída com sucesso' });

@@ -10,14 +10,6 @@ const subjectsSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  grades: {
-    type: [Number],
-    required: true
-  },
-  abscence: {
-    type: Number,
-    required: true
-  },
   notes: {
     type: String,
     required: false

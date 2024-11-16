@@ -40,8 +40,6 @@ router.post('/', async (req, res) => {
         const subjects = new Subjects({
             name: req.body.name,
             acronym: req.body.acronym,
-            grades: req.body.grades,
-            abscence: req.body.abscence,
             notes: req.body.notes,
             user: req.userId
         });
@@ -64,12 +62,6 @@ router.put('/:id', getSubjectsById, async (req, res) => {
         }
         if (req.body.acronym != null) {
             res.subjects.acronym = req.body.acronym;
-        }
-        if (req.body.grades != null) {
-            res.subjects.grades = req.body.grades;
-        }
-        if (req.body.abscence != null) {
-            res.subjects.abscence = req.body.abscence;
         }
         if (req.body.notes != null) {
             res.subjects.notes = req.body.notes;
