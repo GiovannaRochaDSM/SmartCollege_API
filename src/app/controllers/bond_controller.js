@@ -11,9 +11,28 @@ router.use(authMiddleware);
 // Rota GET para buscar vínculos
 router.get('/', async (req, res) => {
     try {
-        const bonds = await Bond.find({ user: req.userId })
-            .populate('user')
-            .populate('university');
+        const user = await User.findById(req.userId).populate('university');
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado' });
+        }
+
+        console.log('E-mail do usuário logado:', user.email);
+        console.log('Universidade do usuário logado:', user.university);
+
+        if (!user.university) {
+            return res.status(400).json({ message: 'Usuário não está vinculado a uma universidade.' });
+        }
+
+        const bonds = await Bond.find({
+            emailCoord: user.email,
+            university: user.university._id
+        })
+        .populate('user')
+        .populate('university');
+
+        if (!bonds.length) {
+            return res.status(404).json({ message: 'Nenhum vínculo encontrado para o usuário nesta universidade.' });
+        }
 
         res.json(bonds);
     } catch (err) {
@@ -72,6 +91,16 @@ router.put('/:userId/accept', async (req, res) => {
             return res.status(400).json({ message: 'ID de universidade inválido.' });
         }
 
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+
+        const university = await University.findById(universityId);
+        if (!university) {
+            return res.status(404).json({ message: 'Universidade não encontrada.' });
+        }
+
         const updatedUser = await User.findByIdAndUpdate(
             userId,
             { bond: true, university: universityId },
@@ -108,6 +137,11 @@ router.put('/:userId/reject', async (req, res) => {
 
         if (!mongoose.isValidObjectId(userId)) {
             return res.status(400).json({ message: 'ID de usuário inválido.' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'Usuário não encontrado.' });
         }
 
         const updatedUser = await User.findByIdAndUpdate(

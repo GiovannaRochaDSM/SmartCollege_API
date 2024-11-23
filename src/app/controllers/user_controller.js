@@ -69,6 +69,28 @@ router.put('/', authMiddleware, async (req, res) => {
     }
 });
 
+// Desvincular o usuário
+router.put('/unbind', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const user = await User.findById(userId);
+        if (!user)
+            return res.status(400).send({ error: 'Usuário não encontrado' });
+
+        if (!user.bond)
+            return res.status(400).send({ error: 'Usuário já não está vinculado a nenhuma universidade' });
+
+        user.bond = false;
+        user.university = null;
+
+        const updatedUser = await user.save();
+
+        res.json(updatedUser);
+    } catch (err) {
+        res.status(400).send({ error: 'Erro ao desvincular usuário' });
+    }
+});
+
 // Excluir conta usuário atual
 router.delete('/', authMiddleware, async (req, res) => {
     try {
