@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
             fiveDaysBefore.setDate(fiveDaysBefore.getDate() + 3);
             notificationPromises.push(new Notification({
                 title: 'Tarefa Vencendo em 3 Dias',
-                body: `Você tem uma  ${newTask.category} "${newTask.name}" vencendo em 5 dias.`,
+                body: `Você tem uma  ${newTask.category} "${newTask.name}" vencendo em 3 dias.`,
                 taskId: newTask._id,
                 userId: req.userId,
                 scheduledTime: fiveDaysBefore,
