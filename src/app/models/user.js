@@ -50,7 +50,8 @@ const UserSchema = new mongoose.Schema({
         ref: 'University',
     },
     isCoord: {
-        type: Boolean
+        type: Boolean,
+        default: false
     }
 });
 
